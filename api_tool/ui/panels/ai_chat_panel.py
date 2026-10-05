@@ -323,6 +323,10 @@ class AIChatPanel(QWidget):
         if not api_key and key == self.settings.provider:
             api_key = self.settings.api_key  # keep the current key
         expires_at, session_only = expiry_from_choice(self.lifetime_combo.currentText())
+        offer = ""
+        if self.settings.offer and api_key == self.settings.api_key:
+            # A claimed key keeps its end date, whatever lifetime is picked here.
+            expires_at, session_only, offer = self.settings.expires_at, False, self.settings.offer
         return AISettings(
             provider=key,
             model=self.model_combo.currentText().strip(),
@@ -331,6 +335,7 @@ class AIChatPanel(QWidget):
             expires_at=expires_at,
             session_only=session_only,
             share_context=self.settings.share_context,
+            offer=offer,
         )
 
     def _load_models(self):
@@ -498,9 +503,15 @@ class AIChatPanel(QWidget):
 
     def _check_expiry(self):
         if self.settings.api_key and self.settings.is_expired():
+            offer, ended = self.settings.offer, self.settings.expires_at
             self.settings = forget_key(self.settings)
             self._stop = True
-            self.open_settings("Your API key expired and was removed from this PC. Enter a key to keep chatting.")
+            if offer:
+                self.open_settings(
+                    f"The free AI ended on {ended.astimezone():%Y-%m-%d}. Enter your own API key to keep chatting."
+                )
+            else:
+                self.open_settings("Your API key expired and was removed from this PC. Enter a key to keep chatting.")
         elif self.stack.currentWidget() is self.chat_page:
             self._update_status()
 

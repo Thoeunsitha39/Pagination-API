@@ -11,6 +11,7 @@ LEVEL_ICONS = {
     "update": ("import", ACCENT),
     "warning": ("warning", DANGER),
     "info": ("bell", TEXT_SECONDARY),
+    "ai": ("ai", ACCENT),
 }
 
 
@@ -20,8 +21,11 @@ class NotificationPanel(QFrame):
     WIDTH = 380
     MAX_LIST_HEIGHT = 420
 
-    def __init__(self, parent, items, unread_ids, on_open_link, on_check_now):
+    def __init__(self, parent, items, unread_ids, on_open_link, on_check_now, on_claim=None, claimed=None):
+        """claimed: offer id -> "AI ready until …" for offers this PC is using now."""
         super().__init__(parent, Qt.WindowType.Popup)
+        self.on_claim = on_claim
+        self.claimed = claimed or {}
         self.setObjectName("notifyPanel")
         self.setFixedWidth(self.WIDTH)
         layout = QVBoxLayout(self)
@@ -86,6 +90,19 @@ class NotificationPanel(QFrame):
             body.setWordWrap(True)
             body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             text.addWidget(body)
+        if item["claim_url"] and item["id"] in self.claimed:
+            done = QLabel(f"✓ Claimed — {self.claimed[item['id']]}")
+            done.setObjectName("notifyClaimed")
+            text.addWidget(done)
+        elif item["claim_url"] and self.on_claim is not None:
+            claim_btn = QPushButton("Claim")
+            claim_btn.setIcon(icon("ai", "#ffffff"))
+            claim_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            claim_btn.clicked.connect(lambda: (self.close(), self.on_claim(item)))
+            claim_row = QHBoxLayout()
+            claim_row.addWidget(claim_btn)
+            claim_row.addStretch()
+            text.addLayout(claim_row)
         if item["link"]:
             link_btn = QPushButton(item["link_text"])
             link_btn.setObjectName("" if item["level"] == "update" else "secondaryButton")

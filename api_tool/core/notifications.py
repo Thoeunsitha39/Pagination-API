@@ -39,7 +39,9 @@ def visible_messages(messages, version=__version__, today=None):
             continue
         if m.get("expires") and str(m["expires"]) < today:
             continue
-        level = m.get("level") if m.get("level") in LEVELS else "info"
+        claim = m.get("claim_ai") if isinstance(m.get("claim_ai"), dict) else {}
+        claim_url = str(claim.get("config_url") or "")
+        level = "ai" if claim_url else m.get("level") if m.get("level") in LEVELS else "info"
         result.append({
             "id": str(m["id"]),
             "title": str(m["title"]),
@@ -49,6 +51,7 @@ def visible_messages(messages, version=__version__, today=None):
             "link": m.get("link") or "",
             "link_text": m.get("link_text") or "Open link",
             "popup": bool(m.get("popup")),
+            "claim_url": claim_url,  # set: a free-AI offer with a Claim button (see api_tool/ai/claim.py)
         })
     result.sort(key=lambda m: m["date"], reverse=True)
     return result
@@ -65,4 +68,5 @@ def update_message(release):
         "link": release["url"],
         "link_text": "Download",
         "popup": True,
+        "claim_url": "",
     }

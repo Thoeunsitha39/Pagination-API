@@ -46,7 +46,7 @@ def settings_path():
 
 class AISettings:
     def __init__(self, provider="anthropic", model=CLAUDE_DEFAULT_MODEL, base_url="", api_key="",
-                 expires_at=None, session_only=False, share_context=True):
+                 expires_at=None, session_only=False, share_context=True, offer=""):
         self.provider = provider if provider in PROVIDERS else "anthropic"
         self.model = model
         self.base_url = base_url
@@ -54,6 +54,7 @@ class AISettings:
         self.expires_at = expires_at  # aware datetime, or None = forever
         self.session_only = session_only
         self.share_context = share_context
+        self.offer = offer  # id of the claimed free-AI offer this key came from ("" = the user's own key)
 
     @property
     def kind(self):
@@ -122,6 +123,7 @@ class AISettings:
             "api_key": self.api_key,
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
             "share_context": self.share_context,
+            "offer": self.offer,
         }
 
     @classmethod
@@ -138,6 +140,7 @@ class AISettings:
             api_key=data.get("api_key") or "",
             expires_at=expires_at,
             share_context=data.get("share_context", True),
+            offer=data.get("offer") or "",
         )
 
 

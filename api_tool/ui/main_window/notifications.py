@@ -5,6 +5,8 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QLabel, QMessageBox
 
 from api_tool import __version__
+from api_tool.ai.claim import fetch_offer_config, settings_from_offer
+from api_tool.ai.settings import save_settings
 from api_tool.core.notifications import fetch_messages, update_message, visible_messages
 from api_tool.core.updates import fetch_latest_release, is_newer, updates_disabled
 from api_tool.ui import ui_state
@@ -15,6 +17,7 @@ from api_tool.ui.widgets.common import _icon_button
 
 class NotifySignals(QObject):
     done = Signal(object, object, str, bool)  # release, messages (None on failure), update error, user asked
+    claimed = Signal(object, str)  # AISettings (None on failure), error message
 
 
 class NotificationsMixin:
@@ -38,6 +41,7 @@ class NotificationsMixin:
     def _start_notifications(self):
         self._notify_signals = NotifySignals()
         self._notify_signals.done.connect(self._on_notifications_checked)
+        self._notify_signals.claimed.connect(self._on_ai_claimed)
         self._latest_release = None
         self._messages = []
         if updates_disabled():
@@ -117,6 +121,7 @@ class NotificationsMixin:
         panel = NotificationPanel(
             self, self._notification_items(), unread, self._open_link,
             lambda: self._check_notifications(user_asked=True),
+            on_claim=self._claim_ai, claimed=self._claimed_offers(),
         )
         panel.show_below(self.notify_btn)
         self._mark_read(unread)
@@ -124,8 +129,9 @@ class NotificationsMixin:
     def _popup_unread(self):
         """Unread notices marked "popup" (a new version always is) open by themselves, once."""
         unread = self._unread_ids()
+        claimed = self._claimed_offers()
         for item in self._notification_items():
-            if item["popup"] and item["id"] in unread:
+            if item["popup"] and item["id"] in unread and item["id"] not in claimed:
                 self._show_notification(item)
 
     def _show_notification(self, item):
@@ -135,12 +141,73 @@ class NotificationsMixin:
         box.setText(item["title"])
         if item["body"]:
             box.setInformativeText(item["body"])
-        link = box.addButton(item["link_text"], QMessageBox.ButtonRole.AcceptRole) if item["link"] else None
-        box.addButton("Later" if link else "OK", QMessageBox.ButtonRole.RejectRole)
+        claim = box.addButton("Claim", QMessageBox.ButtonRole.AcceptRole) if item["claim_url"] else None
+        link = box.addButton(item["link_text"], QMessageBox.ButtonRole.ActionRole) if item["link"] else None
+        box.addButton("Later" if claim or link else "OK", QMessageBox.ButtonRole.RejectRole)
         box.exec()
         self._mark_read([item["id"]])
-        if link is not None and box.clickedButton() is link:
+        if claim is not None and box.clickedButton() is claim:
+            self._claim_ai(item)
+        elif link is not None and box.clickedButton() is link:
             self._open_link(item["link"])
+
+    # ---- free-AI offers ----
+
+    def _claimed_offers(self):
+        """offer id -> "AI ready until …" while this PC uses a claimed key."""
+        s = self.ai_panel.settings
+        if not s.offer or not s.is_configured():
+            return {}
+        return {s.offer: f"AI ready until {s.expires_at.astimezone():%Y-%m-%d %H:%M}"}
+
+    def _claim_ai(self, item):
+        """Download the offer's config in the background and switch the AI assistant to it."""
+        s = self.ai_panel.settings
+        if s.is_configured() and s.api_key and not s.offer:
+            answer = QMessageBox.question(
+                self, "Claim free AI",
+                f"You already use your own AI key ({s.label} · {s.model}).\n\n"
+                "Replace it with the free AI? Your own key will be removed from this PC.",
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+        self.statusBar().showMessage("Setting up the free AI…", 8000)
+        share_context = s.share_context
+
+        def work():
+            try:
+                config = fetch_offer_config(item["claim_url"])
+                self._notify_signals.claimed.emit(settings_from_offer(config, item["id"], share_context), "")
+            except Exception as exc:  # network, bad config, offer ended
+                self._notify_signals.claimed.emit(None, str(exc))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _on_ai_claimed(self, settings, error):
+        if settings is None:
+            QMessageBox.warning(self, "Claim free AI", f"Couldn't set up the free AI:\n{error}")
+            return
+        try:
+            save_settings(settings)
+        except OSError as exc:
+            QMessageBox.warning(self, "Claim free AI", f"Couldn't save the AI settings:\n{exc}")
+            return
+        self.ai_panel.settings = settings
+        self.ai_panel._show_right_page()
+        self._mark_read([settings.offer])
+        if self.tabs.widget(self.tabs.currentIndex()) is self.settings_page:
+            self._refresh_settings_page()
+        self.statusBar().showMessage("Free AI is ready", 6000)
+        box = QMessageBox(self)
+        box.setWindowTitle("Claim free AI")
+        box.setIcon(QMessageBox.Icon.Information)
+        box.setText(f"✓ The AI assistant is ready — until {settings.expires_at.astimezone():%Y-%m-%d %H:%M}.")
+        box.setInformativeText(f"Model: {settings.model}")
+        open_ai = box.addButton("Open AI", QMessageBox.ButtonRole.AcceptRole)
+        box.addButton("OK", QMessageBox.ButtonRole.RejectRole)
+        box.exec()
+        if box.clickedButton() is open_ai:
+            self.tabs.setCurrentIndex(2)
 
     def _open_link(self, url):
         QDesktopServices.openUrl(QUrl(url))

@@ -1,0 +1,7 @@
+{
+  "provider": "deepseek",
+  "base_url": "https://api.deepseek.com/anthropic",
+  "model": "deepseek-v4-pro",
+  "api_key": "PUT-YOUR-KEY-HERE",
+  "expires_at": "2026-10-12T23:59:59+07:00"
+}

@@ -114,6 +114,23 @@ binaries and publishes them as a GitHub Release. The tag must match `__version__
 remembered). Optional: `body`, `date`, `level` (`info` / `warning`), `popup` (open as a dialog once),
 `link` + `link_text` (a button), `expires` (date), `min_version` / `max_version`.
 
+**Offer free AI** — a message with `claim_ai` gets a **Claim** button that sets up the AI assistant
+in one click, until the config's `expires_at`:
+
+1. Copy `ai-offer.example.json`, put your key in it and host it outside this repo (e.g. a secret
+   gist: `gh gist create --secret ai-offer.json`, then use its **Raw** URL without the commit hash).
+2. Add the offer to `notifications.json` and push:
+
+```json
+{"id": "free-ai-2026-10", "date": "2026-10-05", "title": "Free AI for 7 days",
+ "body": "Claim to use the AI assistant until 2026-10-12. No API key needed.",
+ "popup": true, "expires": "2026-10-12", "min_version": "2.1",
+ "claim_ai": {"config_url": "https://gist.githubusercontent.com/<you>/<id>/raw/ai-offer.json"}}
+```
+
+Anyone who can download the config can copy the key, and `expires_at` is only enforced by the app:
+use a key made for the offer with a small balance / spend limit, and delete it when the offer ends.
+
 ## Running from source (development)
 
 ```bash
