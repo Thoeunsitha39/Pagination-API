@@ -15,7 +15,7 @@
       "popup": true,
       "expires": "2026-10-04",
       "min_version": "2.1",
-      "claim_ai": { "config_url": "https://gist.githubusercontent.com/Thoeunsitha39/abc123/raw/ai-offer.json" }
+      "claim_ai": { "config_url": "https://gist.github.com/Thoeunsitha39/7487e0ab8bf092cacdba718a707cc73c/raw/ai-offer.json" }
     }
   ]
 }
