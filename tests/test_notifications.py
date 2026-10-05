@@ -77,6 +77,12 @@ def _open_panel(window):
     return next(w for w in QApplication.topLevelWidgets() if w.objectName() == "notifyPanel" and w.isVisible())
 
 
+def test_clicking_the_bell_opens_the_list(window):
+    window.notify_btn.click()
+    panel = _open_panel(window)
+    assert not panel.status_label.isVisible()
+
+
 def test_check_now_refreshes_the_open_list(window, monkeypatch):
     """Check now syncs updates, offers and messages into the open panel; no dialogs."""
     window._open_notifications()

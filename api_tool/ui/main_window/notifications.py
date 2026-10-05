@@ -33,7 +33,8 @@ class NotificationsMixin:
 
     def _build_notify_button(self):
         """The bell in the header; a red count on it means unread notifications."""
-        self.notify_btn = _icon_button("bell", "Notifications", self._open_notifications)
+        # lambda: clicked() passes a "checked" bool that must not become the status text.
+        self.notify_btn = _icon_button("bell", "Notifications", lambda: self._open_notifications())
         self.notify_btn.setFixedSize(30, 30)
         self.notify_badge = QLabel(self.notify_btn)
         self.notify_badge.setObjectName("notifyBadge")
