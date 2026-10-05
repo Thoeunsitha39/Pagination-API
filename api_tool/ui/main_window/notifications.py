@@ -1,4 +1,5 @@
 import threading
+from datetime import datetime
 
 from PySide6.QtCore import QObject, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
@@ -16,7 +17,8 @@ from api_tool.ui.widgets.common import _icon_button
 
 
 class NotifySignals(QObject):
-    done = Signal(object, object, str, bool)  # release, messages (None on failure), update error, user asked
+    # release, messages (None on failure), error text, who asked ("auto" / "settings" / "panel")
+    done = Signal(object, object, str, str)
     claimed = Signal(object, str)  # AISettings (None on failure), error message
 
 
@@ -44,33 +46,38 @@ class NotificationsMixin:
         self._notify_signals.claimed.connect(self._on_ai_claimed)
         self._latest_release = None
         self._messages = []
+        self._notify_panel = None
         if updates_disabled():
             return
         # After the window is up, so a slow network never delays startup.
-        QTimer.singleShot(3000, lambda: self._check_notifications(user_asked=False))
+        QTimer.singleShot(3000, lambda: self._check_notifications("auto"))
         self._notify_timer = QTimer(self)
-        self._notify_timer.timeout.connect(lambda: self._check_notifications(user_asked=False))
+        self._notify_timer.timeout.connect(lambda: self._check_notifications("auto"))
         self._notify_timer.start(self.CHECK_INTERVAL_MS)
 
-    def _check_notifications(self, user_asked=True):
-        if user_asked:
+    def _check_notifications(self, asked_by="settings"):
+        """Fetch the latest release and the messages (updates, Claim offers, …) in the background.
+
+        asked_by: "auto" (startup / timer: popups only), "settings" (answers about updates) or
+        "panel" (the bell's Check now: the open list refreshes in place)."""
+        if asked_by == "settings":
             self.statusBar().showMessage("Checking for updates and notifications…", 4000)
 
         def work():
-            release, messages, error = None, None, ""
+            release, messages, errors = None, None, []
             try:
                 release = fetch_latest_release()
             except Exception as exc:  # network down, rate limit, no release yet…
-                error = str(exc)
+                errors.append(str(exc))
             try:
                 messages = fetch_messages()
-            except Exception:
-                pass  # keep the messages from the last successful check
-            self._notify_signals.done.emit(release, messages, error, user_asked)
+            except Exception as exc:
+                errors.append(str(exc))  # keep the messages from the last successful check
+            self._notify_signals.done.emit(release, messages, "\n".join(errors), asked_by)
 
         threading.Thread(target=work, daemon=True).start()
 
-    def _on_notifications_checked(self, release, messages, error, user_asked):
+    def _on_notifications_checked(self, release, messages, error, asked_by):
         if messages is not None:
             self._messages = visible_messages(messages)
         if release is not None and is_newer(release["version"]):
@@ -78,8 +85,10 @@ class NotificationsMixin:
         self._refresh_notify_badge()
         if hasattr(self, "settings_version_label"):
             self._refresh_version_label()
-        if not user_asked:
+        if asked_by == "auto":
             self._popup_unread()
+        elif asked_by == "panel":
+            self._reopen_notifications(release, messages, error)
         elif self._latest_release is not None:
             self._show_notification(update_message(self._latest_release))
         elif release is None:
@@ -116,15 +125,36 @@ class NotificationsMixin:
 
     # ---- showing them ----
 
-    def _open_notifications(self):
+    def _open_notifications(self, status=""):
         unread = self._unread_ids()
-        panel = NotificationPanel(
-            self, self._notification_items(), unread, self._open_link,
-            lambda: self._check_notifications(user_asked=True),
-            on_claim=self._claim_ai, claimed=self._claimed_offers(),
+        self._notify_panel = NotificationPanel(
+            self, self._notification_items(), unread, self._open_link, self._sync_notifications,
+            on_claim=self._claim_ai, claimed=self._claimed_offers(), status=status,
         )
-        panel.show_below(self.notify_btn)
+        self._notify_panel.show_below(self.notify_btn)
         self._mark_read(unread)
+
+    def _sync_notifications(self):
+        """Check now: the panel stays open showing "Checking…" and refreshes when the answer comes."""
+        self._notify_panel.set_checking()
+        self._check_notifications("panel")
+
+    def _reopen_notifications(self, release, messages, error):
+        """Show the refreshed list (new items highlighted) with a line saying how the sync went."""
+        checked = datetime.now().strftime("%H:%M")
+        new = len(self._unread_ids())
+        if release is None and messages is None:
+            status = f"⚠ Couldn't connect — showing the last list ({checked})"
+        elif new:
+            status = f"✓ {new} new notification{'s' if new > 1 else ''} · checked {checked}"
+        else:
+            status = f"✓ Up to date · checked {checked}"
+        if error and (release is None) != (messages is None):
+            status += " · some sources failed"
+        if self._notify_panel is not None and self._notify_panel.isVisible():
+            self._notify_panel.close()
+            self._open_notifications(status)
+        # Closed meanwhile: the bell's red count already shows what's new.
 
     def _popup_unread(self):
         """Unread notices marked "popup" (a new version always is) open by themselves, once."""

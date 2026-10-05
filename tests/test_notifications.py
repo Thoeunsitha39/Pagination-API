@@ -60,12 +60,42 @@ def window(tmp_path, monkeypatch):
 def test_bell_counts_unread_and_clears_when_opened(window):
     assert not window.notify_badge.isVisible()
     messages = [{"id": "a", "title": "A"}, {"id": "b", "title": "B", "popup": True}]
-    window._on_notifications_checked({"version": "99.0", "url": "x", "notes": ""}, messages, "", False)
+    window._on_notifications_checked({"version": "99.0", "url": "x", "notes": ""}, messages, "", "auto")
     # The update and "b" popped up on their own (and so are read); "a" waits under the bell.
     assert window.notify_badge.isVisible() and window.notify_badge.text() == "1"
     window._open_notifications()
     assert not window.notify_badge.isVisible()
     # Still listed after reading, and still read after the next check.
     assert [m["id"] for m in window._notification_items()] == ["update-99.0", "a", "b"]
-    window._on_notifications_checked(None, messages, "offline", False)
+    window._on_notifications_checked(None, messages, "offline", "auto")
     assert not window.notify_badge.isVisible()
+
+
+def _open_panel(window):
+    from PySide6.QtWidgets import QApplication
+
+    return next(w for w in QApplication.topLevelWidgets() if w.objectName() == "notifyPanel" and w.isVisible())
+
+
+def test_check_now_refreshes_the_open_list(window, monkeypatch):
+    """Check now syncs updates, offers and messages into the open panel; no dialogs."""
+    window._open_notifications()
+    assert window._notification_items() == []
+    monkeypatch.setattr(window, "_check_notifications", lambda asked_by: None)  # answer by hand below
+    window._sync_notifications()
+    panel = _open_panel(window)
+    assert panel.check_btn.text() == "Checking…" and not panel.check_btn.isEnabled()
+
+    messages = [
+        {"id": "msg", "title": "Hello"},
+        {"id": "offer", "title": "Free AI", "claim_ai": {"config_url": "x"}},
+    ]
+    window._on_notifications_checked({"version": "99.0", "url": "x", "notes": ""}, messages, "", "panel")
+    panel = _open_panel(window)
+    assert "3 new notifications" in panel.status_label.text()
+    assert [m["id"] for m in window._notification_items()] == ["update-99.0", "msg", "offer"]
+    assert not window.notify_badge.isVisible()  # seen in the open list
+
+    window._on_notifications_checked(None, None, "offline", "panel")
+    assert "Couldn't connect" in _open_panel(window).status_label.text()
+    assert len(window._notification_items()) == 3  # the last list is kept

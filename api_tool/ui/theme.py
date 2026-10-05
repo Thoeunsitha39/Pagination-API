@@ -130,6 +130,7 @@ QFrame#notifyPanel {{
 QWidget#notifyItem {{ background-color: {BG_CARD}; border-top: 1px solid {BORDER}; }}
 QWidget#notifyItem[unread="true"] {{ background-color: {ACCENT_SOFT_SOLID}; }}
 QLabel#notifyTitle {{ font-weight: 600; }}
+QLabel#notifyStatus {{ color: {TEXT_MUTED}; font-size: 8.5pt; }}
 QLabel#notifyClaimed {{ color: {SUCCESS}; font-size: 9pt; font-weight: 600; }}
 QWidget#notifyItem[unread="true"] QLabel#notifyTitle {{ color: {ACCENT}; }}
 QLabel#notifyDate {{ color: {TEXT_MUTED}; font-size: 8.5pt; }}

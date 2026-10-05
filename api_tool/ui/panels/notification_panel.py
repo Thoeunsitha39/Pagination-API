@@ -21,8 +21,10 @@ class NotificationPanel(QFrame):
     WIDTH = 380
     MAX_LIST_HEIGHT = 420
 
-    def __init__(self, parent, items, unread_ids, on_open_link, on_check_now, on_claim=None, claimed=None):
-        """claimed: offer id -> "AI ready until …" for offers this PC is using now."""
+    def __init__(self, parent, items, unread_ids, on_open_link, on_check_now, on_claim=None, claimed=None,
+                 status=""):
+        """claimed: offer id -> "AI ready until …" for offers this PC is using now.
+        status: a line under the title saying how the last Check now went."""
         super().__init__(parent, Qt.WindowType.Popup)
         self.on_claim = on_claim
         self.claimed = claimed or {}
@@ -38,9 +40,16 @@ class NotificationPanel(QFrame):
         title.setObjectName("panelTitle")
         header.addWidget(title)
         header.addStretch()
-        check_btn = _text_button("Check now", lambda: (self.close(), on_check_now()))
-        header.addWidget(check_btn)
+        self.check_btn = _text_button("Check now", on_check_now)
+        self.check_btn.setToolTip("Get the latest updates, free-AI offers and messages")
+        self.check_btn.setIcon(icon("reset", TEXT_SECONDARY))
+        header.addWidget(self.check_btn)
         layout.addLayout(header)
+        self.status_label = QLabel(status)
+        self.status_label.setObjectName("notifyStatus")
+        self.status_label.setContentsMargins(14, 0, 14, 8)
+        self.status_label.setVisible(bool(status))
+        layout.addWidget(self.status_label)
 
         list_widget = QWidget()
         list_widget.setObjectName("transparentBox")
@@ -114,6 +123,12 @@ class NotificationPanel(QFrame):
             text.addLayout(link_row)
         layout.addLayout(text, 1)
         return row
+
+    def set_checking(self):
+        self.check_btn.setEnabled(False)
+        self.check_btn.setText("Checking…")
+        self.status_label.setText("Getting updates, offers and messages…")
+        self.status_label.setVisible(True)
 
     def show_below(self, widget):
         """Open under widget, right edges lined up, kept on the screen."""

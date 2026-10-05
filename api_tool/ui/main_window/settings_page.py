@@ -151,7 +151,7 @@ class SettingsPageMixin:
         version_row.addWidget(self.settings_version_label, 1)
         update_btn = QPushButton("Check for updates")
         update_btn.setObjectName("secondaryButton")
-        update_btn.clicked.connect(lambda: self._check_notifications(user_asked=True))
+        update_btn.clicked.connect(lambda: self._check_notifications("settings"))
         version_row.addWidget(update_btn)
         about.addLayout(version_row)
         self._refresh_version_label()
