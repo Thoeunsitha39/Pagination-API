@@ -52,3 +52,30 @@ def settings_from_offer(config, offer_id, share_context=True, now=None):
     if settings.is_expired(now or datetime.now(timezone.utc)):
         raise ValueError("This free AI offer has ended")
     return settings
+
+
+def main(argv=None):
+    """`python -m api_tool.ai.claim <config_url>`: check an offer config the way Claim reads it.
+
+    Prints the settings with the key masked, so it is safe to share the output."""
+    import sys
+
+    args = sys.argv[1:] if argv is None else argv
+    if len(args) != 1:
+        print("Usage: python -m api_tool.ai.claim <config_url>")
+        return 2
+    try:
+        s = settings_from_offer(fetch_offer_config(args[0]), "check")
+    except Exception as exc:
+        print(f"FAIL  {exc}")
+        return 1
+    print(f"OK    provider: {s.provider}")
+    print(f"      base_url: {s.effective_base_url()}")
+    print(f"      model:    {s.model}")
+    print(f"      key:      {s.masked_key()}")
+    print(f"      ends:     {s.expires_at.astimezone():%Y-%m-%d %H:%M} ({s.expiry_text()})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

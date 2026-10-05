@@ -118,7 +118,8 @@ remembered). Optional: `body`, `date`, `level` (`info` / `warning`), `popup` (op
 in one click, until the config's `expires_at`:
 
 1. Copy `ai-offer.example.json`, put your key in it and host it outside this repo (e.g. a secret
-   gist: `gh gist create --secret ai-offer.json`, then use its **Raw** URL without the commit hash).
+   gist: `gh gist create ~/ai-offer.json` — secret by default; never add `--public` — then use its
+   **Raw** URL without the commit hash).
 2. Add the offer to `notifications.json` and push:
 
 ```json
@@ -130,6 +131,9 @@ in one click, until the config's `expires_at`:
 
 Anyone who can download the config can copy the key, and `expires_at` is only enforced by the app:
 use a key made for the offer with a small balance / spend limit, and delete it when the offer ends.
+
+Full walkthrough (create the key, gist, check it, end or extend an offer, troubleshooting):
+[docs/free-ai-offer.md](docs/free-ai-offer.md).
 
 ## Running from source (development)
 
