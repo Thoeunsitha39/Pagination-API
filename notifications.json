@@ -13,7 +13,7 @@
       "title": "Free AI for 7 days",
       "body": "Claim to use the AI assistant (DeepSeek V4 Pro) until 2026-10-12. No API key needed.",
       "popup": true,
-      "expires": "2026-10-04",
+      "expires": "2026-10-12",
       "min_version": "2.1",
       "claim_ai": { "config_url": "https://gist.github.com/Thoeunsitha39/7487e0ab8bf092cacdba718a707cc73c/raw/ai-offer.json" }
     }

@@ -35,7 +35,7 @@ itself on the end date.
 | Config URL | `https://gist.github.com/Thoeunsitha39/7487e0ab8bf092cacdba718a707cc73c/raw/ai-offer.json` |
 | Provider / model | `deepseek` · `deepseek-v4-pro` |
 | Ends | 2026-10-12 23:59 (+07:00) |
-| Status (2026-10-06) | 🔴 Gist still has the **old leaked key** (`…f1a6`): replace it ([Update the gist](#update-the-gist)). 🟠 Offer hidden: `expires` in `notifications.json` is `2026-10-04`; set it to `2026-10-12` once the key is replaced. |
+| Status (2026-10-06) | ✅ Live (`expires` 2026-10-12); Claim and a real DeepSeek reply tested. 🔴 The gist still uses the **leaked key** `…f1a6` (public in commit `c064edd`): replace it soon ([Update the gist](#update-the-gist)), then delete the old key in DeepSeek. |
 | To do on 2026-10-12 | Delete the key in the DeepSeek dashboard. |
 
 Update this table whenever you start, change or end an offer.
