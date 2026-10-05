@@ -56,3 +56,27 @@ def fetch_latest_release(timeout=8):
         "url": data.get("html_url") or RELEASES_PAGE_URL,
         "notes": (data.get("body") or "").strip(),
     }
+
+
+def main():
+    """`python -m api_tool.core.updates`: show the upgrade message installed apps get right now."""
+    try:
+        release = fetch_latest_release()
+    except Exception as exc:
+        print(f"FAIL  {exc}")
+        return 1
+    print(f"Latest release on GitHub: {release['version']}  ({release['url']})")
+    print(f"This code's version:      {__version__}")
+    for old in dict.fromkeys(("2.0", "2.1", "2.2", "2.2.1", __version__)):
+        shown = "sees the upgrade message" if is_newer(release["version"], old) else "up to date"
+        print(f"  an app on {old:<6} {shown}")
+    print("\nMessage text:")
+    print(f"  API Tool {release['version']} is available")
+    print("  You have <their version>.")
+    for line in release["notes"].splitlines() or ["(no release notes)"]:
+        print(f"  {line}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

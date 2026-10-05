@@ -102,6 +102,8 @@ git tag v2.1 && git push origin v2.1
 
 The tag starts `.github/workflows/release.yml`, which runs the tests, builds Linux and Windows
 binaries and publishes them as a GitHub Release. The tag must match `__version__`.
+`release-notes/v2.1.md` (named after the tag) becomes the text of the upgrade message.
+Full walkthrough: [docs/release-new-version.md](docs/release-new-version.md).
 
 **Send a message** — add an entry to `notifications.json` and push it to `main`:
 

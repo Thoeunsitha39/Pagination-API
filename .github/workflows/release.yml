@@ -56,7 +56,16 @@ jobs:
         shell: bash
         run: mv "${{ matrix.binary }}" "${{ matrix.asset }}"
 
+      # release-notes/v2.3.md (named after the tag) becomes the text of the in-app upgrade message.
+      - name: Find release notes
+        id: notes
+        shell: bash
+        run: |
+          file="release-notes/${GITHUB_REF_NAME}.md"
+          if [ -f "$file" ]; then echo "path=$file" >> "$GITHUB_OUTPUT"; else echo "::warning::No $file — the upgrade message will only show a changelog link"; fi
+
       - uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.asset }}
+          body_path: ${{ steps.notes.outputs.path }}
           generate_release_notes: true

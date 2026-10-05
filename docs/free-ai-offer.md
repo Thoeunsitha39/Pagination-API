@@ -196,14 +196,50 @@ No new app release is needed.
 
 ## End an offer
 
-On the end date (or earlier, to stop it now):
+### On the end date
 
 1. **Delete the key** in the DeepSeek dashboard (**API keys** → **Delete**).
    This is what really stops it: the app's end date only affects the app, and anyone who copied
    the key could keep using it otherwise.
 2. Optional: delete the gist with `gh gist delete <gist-id>`.
 
+On users' PCs the app removes the key by itself at `expires_at` and shows **The free AI ended on …**.
 The offer message disappears from the bell by itself after its `expires` date.
+
+### Stop it early for all users
+
+There is **no remote "remove key" button** (yet): once a user has claimed, the key is saved on
+their PC until `expires_at`. What each action does:
+
+| What you do | New claims | Users who already claimed |
+|---|---|---|
+| **Delete the key in DeepSeek** | ❌ Fail | ❌ **AI stops working at once**: DeepSeek rejects the key |
+| Hide the offer: set `expires` in `notifications.json` to a past date, push | ❌ The offer disappears from the bell | ⚠️ Keep using the key until `expires_at` |
+| Delete the gist (`gh gist delete <gist-id>`) | ❌ Fail with `HTTP Error 404` | ⚠️ Keep using the key until `expires_at` |
+| Edit `expires_at` in the gist | Get the new date | ⚠️ No change: they keep the date they claimed with |
+
+To stop it **now, for everyone**, do the first two:
+
+```bash
+# 1. DeepSeek dashboard → API keys → Delete the offer key
+
+# 2. Hide the offer, so nobody sees a Claim that can't work
+cd "/home/sitha/Tool/Pagination API"
+git pull
+nano notifications.json        # in the offer: "expires": "<yesterday's date>"
+git add notifications.json
+git commit -m "End free AI offer"
+git push origin main
+```
+
+What users who already claimed then see: the AI page still looks set up, but every question
+fails with an error such as *invalid API key*, until `expires_at`, when the app removes the key.
+They can enter their own key in **AI settings**, or click **Remove key** on the AI page, at any time.
+
+> Planned (not built yet): a remote "End offer". Apps would recheck their claimed offer at every
+> notification check: a deleted gist or `"revoked": true` would remove the key, an earlier
+> `expires_at` would shorten it, and a new key would be picked up without claiming again. It would
+> need a new app release; older versions would keep the behaviour above.
 
 ## Update the gist
 
@@ -225,7 +261,7 @@ and save. GitHub can take a few minutes to serve the new version.
 |---|---|
 | Extend it | [Update the gist](#update-the-gist) with a later `expires_at`. Also update `expires` and the body in `notifications.json`. Users who already claimed keep the old date until they claim again. |
 | Change the model | Update `model` in the gist. Users who claim after that get the new model. |
-| Replace the key | Create a new key, [update the gist](#update-the-gist), check it, then delete the old key. Users who claimed before have to claim again. |
+| Replace the key | Create a new key, [update the gist](#update-the-gist), check it, then delete the old key. Users who claimed before keep the old key, so their AI stops working. To get the new key they open the **AI** page → **Remove key**, then 🔔 → **Claim** again. (While the old key is saved, the bell shows **✓ Claimed** instead of the Claim button.) |
 | Run a new offer | Repeat Steps 1–4 with a new key and a **new** `id`. |
 
 ---
