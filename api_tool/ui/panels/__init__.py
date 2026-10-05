@@ -1,0 +1,1 @@
+"""Panels embedded in windows."""

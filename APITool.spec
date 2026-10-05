@@ -2,8 +2,8 @@
 
 
 a = Analysis(
-    ['gui/app.py'],
-    pathex=[],
+    ['main.py'],
+    pathex=['.'],
     binaries=[],
     datas=[],
     hiddenimports=[],
@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='PaginationAPITool',
+    name='APITool',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

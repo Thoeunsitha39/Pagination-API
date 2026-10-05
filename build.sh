@@ -1,6 +1,6 @@
 #!/bin/bash
-# Builds a standalone binary of the Pagination API Tool GUI using PyInstaller.
-# Output: dist/PaginationAPITool (single self-contained executable, no
+# Builds a standalone binary of the API Tool GUI using PyInstaller.
+# Output: dist/APITool (single self-contained executable, no
 # Python/venv needed on the machine that runs it).
 set -e
 
@@ -13,12 +13,14 @@ if [ ! -d venv ]; then
     exit 1
 fi
 
-source venv/bin/activate
-
-pyinstaller --noconfirm --onefile --windowed \
-    --name PaginationAPITool \
-    gui/app.py
+# venv/bin/python (not `source venv/bin/activate` / venv/bin/pyinstaller) keeps
+# working after the project folder is moved, since those scripts hardcode the
+# path the venv was created at.
+venv/bin/python -m PyInstaller --noconfirm --onefile --windowed \
+    --name APITool \
+    --paths . \
+    main.py
 
 echo ""
-echo "Built: $PROJECT_DIR/dist/PaginationAPITool"
+echo "Built: $PROJECT_DIR/dist/APITool"
 echo "Copy that single file to any Ubuntu PC (matching architecture) and run it directly."

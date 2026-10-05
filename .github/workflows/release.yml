@@ -1,0 +1,62 @@
+# Publishes a GitHub Release with the built app whenever a version tag is pushed:
+#   1. bump __version__ in api_tool/__init__.py, commit, push
+#   2. git tag v2.1 && git push origin v2.1
+# Installed apps see the new release and show "Update available".
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write  # create the release and upload the binaries
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: APITool-linux-x64
+            binary: dist/APITool
+          - os: windows-latest
+            asset: APITool-windows-x64.exe
+            binary: dist/APITool.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Tag must match __version__
+        shell: bash
+        run: |
+          code_version=$(python -c "import api_tool; print(api_tool.__version__)")
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [ "$code_version" != "$tag_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match __version__ = $code_version in api_tool/__init__.py"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Run tests
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libgl1
+          python -m pytest tests -q
+
+      - name: Build
+        run: python -m PyInstaller --noconfirm APITool.spec
+
+      - name: Rename binary
+        shell: bash
+        run: mv "${{ matrix.binary }}" "${{ matrix.asset }}"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.asset }}
+          generate_release_notes: true

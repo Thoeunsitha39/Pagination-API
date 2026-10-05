@@ -2,4 +2,5 @@ fastapi
 uvicorn[standard]
 pytest
 httpx
-PyQt6
+PySide6
+anthropic

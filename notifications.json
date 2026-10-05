@@ -1,0 +1,11 @@
+{
+  "messages": [
+    {
+      "id": "welcome-2-0",
+      "date": "2026-10-05",
+      "title": "Welcome to API Tool 2.0",
+      "body": "Notifications from the API Tool team show up here: new versions, tips and announcements.",
+      "level": "info"
+    }
+  ]
+}
