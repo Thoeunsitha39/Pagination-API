@@ -72,6 +72,8 @@ from api_tool.core.stubs.pagination import (  # noqa: F401
 from api_tool.core.stubs.webhooks import (  # noqa: F401
     new_webhook,
     webhook_delay_ms,
+    webhook_enabled,
+    set_webhook_enabled,
     webhooks_of,
     set_webhooks,
     webhook_url,
@@ -135,6 +137,8 @@ __all__ = [
     "reset_simulated_failures",
     "new_webhook",
     "webhook_delay_ms",
+    "webhook_enabled",
+    "set_webhook_enabled",
     "webhooks_of",
     "set_webhooks",
     "webhook_url",

@@ -8,4 +8,8 @@ class LogicSignals(QObject):
 
 
 class TunnelSignals(QObject):
-    event = Signal(str, str)  # kind ("url" / "error" / "stopped"), text
+    tunnel_event = Signal(str, str)  # kind ("url" / "error" / "stopped"), text
+
+
+class WebhookSignals(QObject):
+    sent = Signal(dict)  # the Request Log entry of a webhook sent with "Send now"

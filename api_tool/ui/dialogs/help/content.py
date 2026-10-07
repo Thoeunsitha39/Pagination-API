@@ -124,6 +124,19 @@ WEBHOOK_EXAMPLE = {
 }
 
 
+# Webhook query parameters filled from an XML request body (shown with SAMPLE_XML).
+WEBHOOK_XML_QUERY = {
+    "orderId": "{{xPath request.body '/order/@id'}}",
+    "customer": "{{xPath request.body '/order/customer'}}",
+    "firstSku": "{{xPath request.body '//line[1]/sku'}}",
+}
+WEBHOOK_XML_BODY = (
+    "<event>\n  <type>order.received</type>\n"
+    "  <orderId>{{xPath request.body '/order/@id'}}</orderId>\n"
+    "  <customer>{{xPath request.body '/order/customer'}}</customer>\n</event>"
+)
+
+
 CSS = """
 <style>
   body { font-family: sans-serif; font-size: 10pt; color: #14161f; }
@@ -275,6 +288,41 @@ def scripts_html():
     return "".join(parts)
 
 
+def _webhook_xml_parts(hook):
+    """The "values from an XML request body" part of the webhooks help, rendered with SAMPLE_XML."""
+    context = template_context(_sample_request(SAMPLE_XML), {}, {"status": 200})
+    rows = "".join(
+        f"<tr><td><code>{_esc(k)}</code></td><td><code>{_esc(v)}</code></td>"
+        f"<td class='result'>{_esc(render_template(v, context))}</td></tr>"
+        for k, v in WEBHOOK_XML_QUERY.items()
+    )
+    pairs = [(k, render_template(v, context)) for k, v in WEBHOOK_XML_QUERY.items()]
+    url = webhook_url(render_template(hook["url"], context), pairs)
+    return [
+        "<h3>Values from an XML request body</h3>",
+        "<p>Use <code>{{xPath request.body '…'}}</code> in a query parameter, header, URL or body. "
+        "When the stub is called with this XML body:</p>",
+        _pre(SAMPLE_XML),
+        "<p><b>Query parameters:</b></p>",
+        f"<table><tr><th>Name</th><th>Value (template)</th><th>Sent as</th></tr>{rows}</table>",
+        "<p class='muted'>Webhook URL:</p>",
+        _pre(f"{hook['method']} {url}"),
+        "<p><b>XML body</b> for the webhook (set <code>Content-Type: application/xml</code> in Headers):</p>",
+        _pre(WEBHOOK_XML_BODY),
+        "<p class='muted'>Sent as:</p>",
+        _pre(render_template(WEBHOOK_XML_BODY, context)),
+        "<table><tr><th>Path</th><th>Picks</th></tr>"
+        "<tr><td><code>/order/customer</code></td><td>an element's text</td></tr>"
+        "<tr><td><code>/order/@id</code></td><td>an attribute</td></tr>"
+        "<tr><td><code>//line[2]/sku</code></td><td>the 2nd <code>&lt;line&gt;</code> anywhere (counting starts at 1)</td></tr>"
+        "<tr><td><code>//Id</code></td><td>an element anywhere — namespaces are ignored, so SOAP bodies work "
+        "(<code>/Envelope/Body/GetUser/Id</code> too)</td></tr>"
+        "</table>"
+        "<p class='muted'>A path that isn't found gives an empty value. <b>Send now</b> has no request, "
+        "so these are empty there — call the stub (e.g. with <b>Test</b>) to see them filled in the Request Log.</p>",
+    ]
+
+
 def webhooks_html():
     hook = WEBHOOK_EXAMPLE
     context = template_context(_sample_request(), {}, {"status": 200})
@@ -316,6 +364,18 @@ def webhooks_html():
         _sample_request_html(),
         "<p class='muted'>Webhook request:</p>",
         _pre(f"{hook['method']} {url}\n{headers}\n\n{body}"),
+        *_webhook_xml_parts(hook),
+        "<h3>Authorization</h3>",
+        "<p>If the receiver needs a login, pick it under <b>Authorization</b> instead of typing the header:</p>"
+        "<table><tr><th>Type</th><th>Sent as</th></tr>"
+        "<tr><td>Bearer token</td><td><code>Authorization: Bearer &lt;token&gt;</code></td></tr>"
+        "<tr><td>Basic auth</td><td><code>Authorization: Basic &lt;base64 of username:password&gt;</code></td></tr>"
+        "<tr><td>API key</td><td>a header (e.g. <code>X-API-Key: …</code>) or a query parameter</td></tr>"
+        "<tr><td>This tool's login</td><td>the Basic Auth or a fresh OAuth 2.0 token from "
+        "<b>Settings → Security</b> — for webhooks that call this tool back</td></tr>"
+        "</table>"
+        "<p class='muted'>Values can use templates, e.g. <code>{{request.headers.X-Token}}</code>. "
+        "Authorization replaces a header with the same name.</p>",
         "<h3>Extra values only webhooks have</h3>",
         "<table><tr><th>Placeholder</th><th>Meaning</th></tr>"
         "<tr><td><code>{{response.status}}</code></td><td>status code the stub sent back</td></tr>"
@@ -324,7 +384,12 @@ def webhooks_html():
         "</table>",
         "<h3>Tips</h3>",
         "<p>• <b>Send now</b> fires the selected webhook immediately (request values are empty) — "
-        "good for checking that the receiving URL works.<br>"
+        "good for checking that the receiving URL works. The result (status, time and the reply) "
+        "shows right under the buttons; <b>Open in Log</b> has the full request and response.<br>"
+        "• Untick a webhook in the list to turn it <b>off</b> without deleting it — it shows "
+        "<code>· off</code> and is not sent until you tick it again.<br>"
+        "• <b>+ Add</b> starts from a copy of the last webhook you set up, in any stub.<br>"
+        "• <b>Beautify</b> (next to BODY) indents a JSON or XML body and keeps <code>{{…}}</code> as written.<br>"
         "• No receiver yet? Point the webhook at this tool itself and add a stub for that path — "
         "the <b>Examples</b> button at the top of the stub list → <b>Create order + webhook</b> sets this up for you.</p>",
     ])

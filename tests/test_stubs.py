@@ -287,6 +287,34 @@ def test_webhook_url_encodes_query():
     assert webhook_url("http://h/cb", []) == "http://h/cb"
 
 
+def test_webhook_auth():
+    from api_tool.core.stubs.webhooks import webhook_auth, webhook_auth_parts
+
+    assert webhook_auth({}) == {"type": "none"} and webhook_auth({"auth": {"type": "bogus"}}) == {"type": "none"}
+    assert webhook_auth_parts(webhook_auth({})) == ({}, [])
+    bearer = webhook_auth({"auth": {"type": "bearer", "token": "{{t}}", "extra": 1}})
+    assert bearer == {"type": "bearer", "token": "{{t}}"}
+    assert webhook_auth_parts(bearer, lambda v: v.replace("{{t}}", "abc")) == ({"Authorization": "Bearer abc"}, [])
+    basic = webhook_auth({"auth": {"type": "basic", "username": "u", "password": "p"}})
+    assert webhook_auth_parts(basic) == ({"Authorization": "Basic dTpw"}, [])
+    key = webhook_auth({"auth": {"type": "apikey", "value": "k"}})
+    assert key["name"] == "X-API-Key" and key["in"] == "header"
+    assert webhook_auth_parts(key) == ({"X-API-Key": "k"}, [])
+    assert webhook_auth_parts({**key, "in": "query", "name": "api_key"}) == ({}, [("api_key", "k")])
+    server = {"type": "server"}
+    assert webhook_auth_parts(server, server_header="Basic eA==") == ({"Authorization": "Basic eA=="}, [])
+    assert webhook_auth_parts(server) == ({}, [])  # Security is off
+
+
+def test_webhook_auth_survives_load():
+    text = json.dumps({"mappings": [{
+        "request": {"urlPath": "/a"}, "response": {"status": 200},
+        "serveEventListeners": [{"name": "webhook", "parameters": {
+            "url": "http://x", "auth": {"type": "bearer", "token": "t"}}}]}]})
+    (stub,) = load_mappings(text)
+    assert webhooks_of(stub)[0]["auth"] == {"type": "bearer", "token": "t"}
+
+
 def test_example_stubs_are_valid():
     stubs = example_stubs("http://127.0.0.1:8765")
     assert len(load_mappings(dump_mappings(stubs))) == 4

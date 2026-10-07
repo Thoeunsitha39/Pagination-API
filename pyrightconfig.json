@@ -1,0 +1,12 @@
+{
+  "include": ["api_tool", "backend", "tests", "main.py"],
+  "exclude": ["venv", "build", "dist", "**/__pycache__"],
+  "venvPath": ".",
+  "venv": "venv",
+  "typeCheckingMode": "basic",
+  "reportAttributeAccessIssue": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportOptionalIterable": "none",
+  "reportOptionalCall": "none"
+}

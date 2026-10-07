@@ -11,6 +11,7 @@ from api_tool.ai.settings import save_settings
 from api_tool.core.notifications import fetch_messages, update_message, visible_messages
 from api_tool.core.updates import fetch_latest_release, is_newer, updates_disabled
 from api_tool.ui import ui_state
+from api_tool.ui.main_window.mixin_base import MixinBase
 from api_tool.ui.panels.notification_panel import NotificationPanel
 from api_tool.ui.theme import ACCENT
 from api_tool.ui.widgets.common import _icon_button
@@ -22,7 +23,7 @@ class NotifySignals(QObject):
     claimed = Signal(object, str)  # AISettings (None on failure), error message
 
 
-class NotificationsMixin:
+class NotificationsMixin(MixinBase):
     """The header bell: messages from notifications.json on GitHub plus "new version" notices.
 
     Checks at startup, every few hours, from the bell's "Check now" and Settings → About.

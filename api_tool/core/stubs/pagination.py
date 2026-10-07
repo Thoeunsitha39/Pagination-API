@@ -538,7 +538,7 @@ def find_page_links(headers, data, current_url):
     Looks at the Link header, then the default shapes, then any top-level field named like
     next… / prev… holding a URL or path (nextRecordsUrl, @odata.nextLink, next_page_url…)."""
     headers = {k.lower(): v for k, v in (headers or {}).items()}
-    found = {"next": None, "prev": None}
+    found: dict[str, str | None] = {"next": None, "prev": None}
     paged = False
     links = _parse_link_header(headers.get("link"))
     if links:

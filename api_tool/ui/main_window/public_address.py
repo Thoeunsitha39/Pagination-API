@@ -5,13 +5,14 @@ from PySide6.QtWidgets import QApplication, QCheckBox, QComboBox, QHBoxLayout, Q
 
 from api_tool.server.tunnel import TUNNEL_PROVIDERS, Tunnel, lan_addresses, provider_available
 from api_tool.ui.icons import icon
+from api_tool.ui.main_window.mixin_base import MixinBase
 from api_tool.ui.signals import TunnelSignals
 from api_tool.ui.theme import SUCCESS, TEXT_SECONDARY
 
 OWN_URL = "own"
 
 
-class PublicAddressMixin:
+class PublicAddressMixin(MixinBase):
     """Mixed into ApiTool; uses its widgets and state through self."""
 
     def _build_public_address_card(self, section):
@@ -22,7 +23,7 @@ class PublicAddressMixin:
         self.tunnel = None
         self.public_url = ""
         self._tunnel_signals = TunnelSignals()
-        self._tunnel_signals.event.connect(self._on_tunnel_event)
+        self._tunnel_signals.tunnel_event.connect(self._on_tunnel_event)
 
         # --- local network
         lan_row = QHBoxLayout()
@@ -126,7 +127,7 @@ class PublicAddressMixin:
             return
         if self.local_server is None:
             self._start_local_server()
-        self.tunnel = Tunnel(key, self.server_port, self._tunnel_signals.event.emit)
+        self.tunnel = Tunnel(key, self.server_port, self._tunnel_signals.tunnel_event.emit)
         try:
             self.tunnel.start()
         except OSError as exc:

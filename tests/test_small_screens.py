@@ -88,7 +88,7 @@ def test_responsive_grid_reflows():
     assert grid._columns == 2
     labels[0].hide()
     grid.relayout()
-    assert grid._grid.getItemPosition(grid._grid.indexOf(labels[1]))[:2] == (0, 0)
+    assert grid._grid.getItemPosition(grid._grid.indexOf(labels[1]))[:2] == (0, 0)  # pyright: ignore[reportIndexIssue]
 
 
 def test_sections_hide_show_and_remember(window):
@@ -155,3 +155,106 @@ def test_security_settings_survive_a_restart(window):
         assert not again.security_remember_check.isChecked()
     finally:
         again.close()
+
+
+def test_new_webhook_starts_from_the_last_one(window):
+    from api_tool.core.stubs import new_paginated_stub
+
+    first, second = new_paginated_stub(), new_paginated_stub()
+    window.stubs.extend([first, second])
+    window._load_stub_into_editor(first)
+    window._add_webhook()
+    assert window.webhook_url_edit.text().endswith("/webhook-receiver")  # nothing to reuse yet
+    window.webhook_method_combo.setCurrentText("PUT")
+    window.webhook_url_edit.setText("https://hooks.example.com/orders")
+    window.webhook_headers_table.set_rows([("X-Api-Key", "secret")])
+    window._on_webhook_field_changed()
+
+    window._load_stub_into_editor(second)
+    window._add_webhook()
+    assert window.webhook_method_combo.currentText() == "PUT"
+    assert window.webhook_url_edit.text() == "https://hooks.example.com/orders"
+    assert window.webhook_headers_table.rows() == [("X-Api-Key", "secret")]
+    # It is a copy: editing the new webhook leaves the first stub's webhook alone.
+    window.webhook_url_edit.setText("https://hooks.example.com/other")
+    assert window._webhooks[0]["url"] == "https://hooks.example.com/other"
+
+
+def test_webhooks_can_be_turned_off_one_by_one(window, monkeypatch):
+    from PySide6.QtCore import Qt
+
+    from api_tool.core.stubs import new_paginated_stub, set_webhooks, stub_tags
+    from api_tool.ui.main_window import webhooks_tab
+
+    stub = new_paginated_stub()
+    window.stubs.append(stub)
+    window._load_stub_into_editor(stub)
+    window._add_webhook()
+    window._add_webhook()
+    window.webhook_list.item(0).setCheckState(Qt.CheckState.Unchecked)
+    assert window._webhooks[0]["enabled"] is False and "enabled" not in window._webhooks[1]
+    assert window.webhook_list.item(0).text().endswith("· off")
+
+    set_webhooks(stub, window._webhooks)
+    assert "2 webhooks, 1 off" in stub_tags(stub)
+    started = []
+    monkeypatch.setattr(webhooks_tab.threading, "Timer",
+                        lambda _delay, _fn, args: type("T", (), {"start": lambda self: started.append(args[1])})())
+    from api_tool.core.scripting.script_request import ScriptRequest
+    window.schedule_webhooks(stub, ScriptRequest("GET", "/", {}, ""), {}, {})
+    assert started == [window._webhooks[1]]
+
+    window.webhook_list.item(0).setCheckState(Qt.CheckState.Checked)
+    assert "enabled" not in window._webhooks[0]
+
+
+def test_webhook_body_beautify(window):
+    from api_tool.core.stubs import new_paginated_stub
+
+    stub = new_paginated_stub()
+    window.stubs.append(stub)
+    window._load_stub_into_editor(stub)
+    window._add_webhook()
+    window.webhook_body_edit.setPlainText('{"id":{{request.query.id}},"ok":true}')
+    window._beautify_webhook_body()
+    assert window.webhook_body_edit.toPlainText() == '{\n  "id": {{request.query.id}},\n  "ok": true\n}'
+    assert window._webhooks[0]["body"] == window.webhook_body_edit.toPlainText()
+
+
+def test_send_now_shows_the_result(window):
+    import threading
+    import time
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    from PySide6.QtWidgets import QApplication
+
+    from api_tool.core.stubs import new_paginated_stub
+
+    class Receiver(BaseHTTPRequestHandler):
+        def do_POST(self):
+            self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            self.send_response(201)
+            self.end_headers()
+            self.wfile.write(b'{"received": true}')
+
+        def log_message(self, *_args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Receiver)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        stub = new_paginated_stub()
+        window.stubs.append(stub)
+        window._load_stub_into_editor(stub)
+        window._add_webhook()
+        window.webhook_url_edit.setText(f"http://127.0.0.1:{server.server_port}/hook")
+        window._send_webhook_now()
+        assert not window.webhook_send_btn.isEnabled()
+        assert "Sending POST" in window.webhook_result_status.text()
+        deadline = time.monotonic() + 10
+        while not window.webhook_send_btn.isEnabled() and time.monotonic() < deadline:
+            QApplication.processEvents()
+        assert "201 Created" in window.webhook_result_status.text()
+        assert window.webhook_result_body.text() == '{"received": true}'
+    finally:
+        server.shutdown()

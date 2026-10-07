@@ -11,7 +11,7 @@ class _Picker(QComboBox):
         super().__init__(parent)
         self.setEditable(True)
         self.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        self.setCompleter(None)
+        self.setCompleter(None)  # pyright: ignore[reportArgumentType]  (Qt accepts None: no completer)
         self._label = label
         for value in presets:
             self.addItem(label(value), value)

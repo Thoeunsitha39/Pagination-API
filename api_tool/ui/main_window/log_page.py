@@ -18,11 +18,12 @@ from PySide6.QtWidgets import (
 )
 
 from api_tool.ui.icons import icon
+from api_tool.ui.main_window.mixin_base import MixinBase
 from api_tool.ui.theme import DANGER, METHOD_COLORS, SUCCESS, TEXT_PRIMARY, TEXT_SECONDARY
 from api_tool.ui.widgets.common import ResponsiveSplitter, _card, _monospace, _status_pill
 
 
-class LogPageMixin:
+class LogPageMixin(MixinBase):
     """The Log page: request/webhook table, filter and details panel.
 
     Mixed into ApiTool; uses its widgets and state through self."""

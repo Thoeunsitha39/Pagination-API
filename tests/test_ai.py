@@ -106,3 +106,22 @@ def test_extract_python_block_and_logic_messages():
     (message,) = logic_request_messages("404 when id > 100", {"id": "x", "name": "Get"}, "")
     assert "404 when id > 100" in message["content"] and '"name": "Get"' in message["content"]
     assert '"id": "x"' not in message["content"]
+
+
+def test_out_of_credit_402_is_explained():
+    import anthropic
+    import httpx
+
+    from api_tool.ai.providers import _anthropic_error, _http_error_message
+    from api_tool.ai.settings import AISettings
+
+    body = '{"error": {"message": "Insufficient Balance", "type": "unknown_error"}}'
+    own = AISettings("deepseek", "deepseek-chat", api_key="k")
+    assert "Add credit to your DeepSeek account" in _http_error_message(402, body, own)
+
+    offer = AISettings("deepseek", "deepseek-chat", base_url="https://api.deepseek.com/anthropic",
+                       api_key="k", offer="code:abc")
+    request = httpx.Request("POST", "https://api.deepseek.com/anthropic/v1/messages")
+    exc = anthropic.APIStatusError("Insufficient Balance", response=httpx.Response(402, request=request), body=None)
+    message = _anthropic_error(anthropic, exc, offer)
+    assert "out of credit (402)" in message and "free AI included with this app" in message

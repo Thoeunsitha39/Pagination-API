@@ -1,5 +1,6 @@
 """{{...}} response templating (WireMock response-template style)."""
 
+import copy
 import json
 import random
 import re
@@ -105,13 +106,27 @@ def json_path(source, path):
     return data
 
 
+def _without_namespaces(root):
+    """A copy of the tree with {namespace} dropped from every tag and attribute name."""
+    root = copy.deepcopy(root)
+    for element in root.iter():
+        if isinstance(element.tag, str) and "}" in element.tag:
+            element.tag = element.tag.split("}", 1)[1]
+        for name in [n for n in element.attrib if "}" in n]:
+            element.attrib[name.split("}", 1)[1]] = element.attrib.pop(name)
+    return root
+
+
 def x_path(source, path):
-    """Minimal XPath: /root/child, //child, /root/child/@attr, /root/items/item[2] (1-based)."""
+    """Minimal XPath: /root/child, //child, /root/child/@attr, /root/items/item[2] (1-based).
+
+    Namespaces are ignored, so SOAP-style bodies work with /Envelope/Body/... or /s:Envelope/s:Body/..."""
     try:
         root = source if isinstance(source, ET.Element) else ET.fromstring(source)
     except (ET.ParseError, TypeError):
         return None
-    path = path.strip()
+    root = _without_namespaces(root)
+    path = re.sub(r"(^|[/@\[])[A-Za-z_][\w.-]*:(?=[A-Za-z_])", r"\1", path.strip())
     attribute = None
     if "/@" in path:
         path, attribute = path.rsplit("/@", 1)

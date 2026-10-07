@@ -27,6 +27,7 @@ from api_tool.core.stubs.matching import example_from_pattern, url_spec
 from api_tool.core.stubs.model import pagination_of
 from api_tool.ui.dialogs.logic_preview_dialog import LogicPreviewDialog
 from api_tool.ui.icons import icon
+from api_tool.ui.main_window.mixin_base import MixinBase
 from api_tool.ui.signals import LogicSignals
 from api_tool.ui.theme import ACCENT, SUCCESS
 from api_tool.ui.widgets.common import _card_label, _monospace
@@ -49,7 +50,7 @@ print("user:", user)                              # shows in the Request Log
 """
 
 
-class LogicTabMixin:
+class LogicTabMixin(MixinBase):
     """The Logic tab: custom-logic script, snippets, Generate with AI, Try it.
 
     Mixed into ApiTool; uses its widgets and state through self."""

@@ -107,7 +107,7 @@ class TryLogicWindow(QWidget):
         layout.addWidget(split, 1)
 
         for keys in ("Ctrl+Return", "Ctrl+Enter"):
-            QShortcut(QKeySequence(keys), self, activated=self.run)
+            QShortcut(QKeySequence(keys), self).activated.connect(self.run)
         self.reload()
 
     def _label(self, text):

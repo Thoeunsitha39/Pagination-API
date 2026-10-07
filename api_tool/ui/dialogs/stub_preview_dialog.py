@@ -28,7 +28,7 @@ from api_tool.core.stubs.model import (
     stub_summary,
     stub_tags,
 )
-from api_tool.core.stubs.webhooks import webhooks_of
+from api_tool.core.stubs.webhooks import webhook_enabled, webhooks_of
 
 
 ADD_NEW = "add"
@@ -110,7 +110,8 @@ def _display_text(stub):
         lines += ["", "SCRIPT (Python, runs on this PC)", metadata["script"].rstrip()]
     for hook in webhooks_of(stub):
         delay = hook.get("delay", {}).get("milliseconds", 0)
-        lines += ["", f"WEBHOOK   {hook.get('method')} {hook.get('url')}  after {delay} ms"]
+        off = "" if webhook_enabled(hook) else "  (off — not sent)"
+        lines += ["", f"WEBHOOK   {hook.get('method')} {hook.get('url')}  after {delay} ms{off}"]
         for name, value in (hook.get("queryParameters") or {}).items():
             lines.append(f"  ?{name}={value}")
         for name, value in (hook.get("headers") or {}).items():

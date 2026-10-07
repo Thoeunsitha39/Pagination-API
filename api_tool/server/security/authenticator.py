@@ -54,6 +54,7 @@ class Authenticator:
             claims, error = self.oauth.validate(authorization)
             if claims is not None:
                 return AuthResult(True, dict(claims, auth="oauth2"))
+            assert error is not None  # validate() returns (claims, None) or (None, error)
             status, code, description = error
             if self.basic_enabled and not authorization:
                 description = "Send Basic credentials or an OAuth 2.0 Bearer token."

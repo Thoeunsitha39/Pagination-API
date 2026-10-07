@@ -1,6 +1,7 @@
 """AI chat panel (key setup + streaming chat)."""
 
 import threading
+from collections.abc import Callable
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QKeySequence, QShortcut
@@ -98,7 +99,7 @@ class AIChatPanel(QWidget):
     stub a per-stub chat is about); None sends no context in that case."""
 
     def __init__(self, context_provider, add_stubs, parent=None, settings_owner=None,
-                 suggestions=None, intro=DEFAULT_INTRO, show_requirement_button=True,
+                 suggestions=None, intro: str | Callable[[], str] = DEFAULT_INTRO, show_requirement_button=True,
                  title="AI ASSISTANT", minimal_context_provider=None):
         super().__init__(parent)
         self.setObjectName("transparentBox")
@@ -482,7 +483,7 @@ class AIChatPanel(QWidget):
         layout.addLayout(input_row)
 
         for keys in ("Ctrl+Return", "Ctrl+Enter"):
-            QShortcut(QKeySequence(keys), self.input_edit, activated=self._send_or_stop)
+            QShortcut(QKeySequence(keys), self.input_edit).activated.connect(self._send_or_stop)
         return page
 
     def _show_right_page(self):

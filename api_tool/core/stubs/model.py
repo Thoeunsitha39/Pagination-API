@@ -5,7 +5,7 @@ import uuid
 
 from api_tool.core.stubs.matching import request_matches, url_spec
 from api_tool.core.stubs.pagination import DEFAULT_PAGE_SIZE
-from api_tool.core.stubs.webhooks import webhooks_of
+from api_tool.core.stubs.webhooks import webhook_enabled, webhooks_of
 
 
 DEFAULT_PRIORITY = 5
@@ -115,9 +115,10 @@ def stub_tags(stub):
         tags.append("paged")
     if script_of(stub):
         tags.append("script")
-    hooks = len(webhooks_of(stub))
+    hooks = webhooks_of(stub)
     if hooks:
-        tags.append(f"{hooks} webhook{'s' if hooks > 1 else ''}")
+        off = sum(not webhook_enabled(h) for h in hooks)
+        tags.append(f"{len(hooks)} webhook{'s' if len(hooks) > 1 else ''}" + (f", {off} off" if off else ""))
     if not is_enabled(stub):
         tags.append("disabled")
     return tags

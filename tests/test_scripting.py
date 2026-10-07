@@ -153,3 +153,24 @@ def test_render_values_keeps_json_valid():
     rendered = render_values(records, context)
     assert rendered == [{"id": 1, "who": "sitha", "tags": ['He said "hi"'], "n": None}]
     assert json.loads(json.dumps(rendered)) == rendered
+
+
+def test_xpath_ignores_namespaces():
+    from api_tool.core.scripting.templates import x_path
+
+    soap = ('<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body>'
+            '<GetUser xmlns="urn:users" kind="vip"><Id>7</Id></GetUser></s:Body></s:Envelope>')
+    assert x_path(soap, "//Id") == "7"
+    assert x_path(soap, "/Envelope/Body/GetUser/Id") == "7"
+    assert x_path(soap, "/s:Envelope/s:Body/u:GetUser/u:Id") == "7"
+    assert x_path(soap, "//GetUser/@kind") == "vip"
+    assert x_path(soap, "//Missing") is None
+
+
+def test_webhook_help_shows_xml_values_filled_in():
+    from api_tool.ui.dialogs.help.content import webhooks_html
+
+    page = webhooks_html()
+    assert "Values from an XML request body" in page
+    assert "?orderId=42&amp;customer=Sitha&amp;firstSku=A-1" in page
+    assert "&lt;orderId&gt;42&lt;/orderId&gt;" in page

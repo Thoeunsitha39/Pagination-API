@@ -7,10 +7,11 @@ from PySide6.QtWidgets import QDialog, QMessageBox
 from api_tool.ui.dialogs.help.help_dialog import HelpDialog
 from api_tool.ui.dialogs.stub_preview_dialog import REPLACE, StubPreviewDialog
 from api_tool.ui.icons import app_icon
+from api_tool.ui.main_window.mixin_base import MixinBase
 from api_tool.ui.windows.stub_ai_window import StubAIWindow
 
 
-class AIFeaturesMixin:
+class AIFeaturesMixin(MixinBase):
     """AI integration in the main window: context, Ask AI windows, adding AI stubs, Help.
 
     Mixed into ApiTool; uses its widgets and state through self."""

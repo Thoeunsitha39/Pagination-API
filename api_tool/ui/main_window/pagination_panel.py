@@ -27,6 +27,7 @@ from api_tool.core.stubs.pagination import (
     first_page,
     matching_preset,
 )
+from api_tool.ui.main_window.mixin_base import MixinBase
 from api_tool.ui.widgets.common import ResponsiveGrid, _card_label, _shrinkable_combo, _field, _monospace, _text_button
 from api_tool.ui.widgets.pickers.status_picker import StatusPicker
 
@@ -74,7 +75,7 @@ def _pretty_envelope(envelope):
     return json.dumps(envelope, indent=2, ensure_ascii=False)
 
 
-class PaginationPanelMixin:
+class PaginationPanelMixin(MixinBase):
     """Preset, mode, page size, parameter names, response shape, Link header, fail on page.
 
     Mixed into ApiTool; _build_pagination_box() returns the panel, _fill_pagination() loads a

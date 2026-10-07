@@ -6,10 +6,11 @@ from PySide6.QtWidgets import QLabel, QMessageBox
 from api_tool.core.stubs.model import is_enabled
 from api_tool.server.request_handler import ApiRequestHandler, DEFAULT_SERVER_HOST
 from api_tool.ui.icons import icon
+from api_tool.ui.main_window.mixin_base import MixinBase
 from api_tool.ui.theme import DANGER, SUCCESS, TEXT_SECONDARY
 
 
-class ServerControlMixin:
+class ServerControlMixin(MixinBase):
     """Starting/stopping the mock server, its status, and Basic Auth.
 
     Mixed into ApiTool; uses its widgets and state through self."""

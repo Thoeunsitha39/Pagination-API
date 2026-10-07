@@ -2,6 +2,7 @@ import csv
 import json
 import re
 import xml.etree.ElementTree as ET
+from typing import Any
 from urllib.parse import urlencode
 
 from PySide6.QtCore import Qt
@@ -24,6 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from api_tool.core.beautify import beautify
 from api_tool.core.payloads import parse_csv_items, parse_json_items, parse_xml_items
 from api_tool.core.scripting.runner import check_script
 from api_tool.core.stubs.formats import (
@@ -54,6 +56,7 @@ from api_tool.core.stubs.pagination import parse_records, reset_simulated_failur
 from api_tool.core.stubs.webhooks import set_webhooks, webhooks_of
 from api_tool.ui.dialogs.test_request_dialog import TestRequestDialog
 from api_tool.ui.icons import icon
+from api_tool.ui.main_window.mixin_base import MixinBase
 from api_tool.ui.theme import ACCENT, TEXT_MUTED, TEXT_PRIMARY
 from api_tool.ui.widgets.common import (
     ResponsiveGrid,
@@ -75,7 +78,7 @@ from api_tool.ui.widgets.pickers.delay_picker import DelayPicker, delay_label
 from api_tool.ui.widgets.pickers.status_picker import StatusPicker
 
 
-class StubEditorMixin:
+class StubEditorMixin(MixinBase):
     """The stub editor: request card, Response tab, load/save, reset, Test.
 
     Mixed into ApiTool; uses its widgets and state through self."""
@@ -295,7 +298,6 @@ class StubEditorMixin:
         resp.addWidget(self.pagination_box)
 
         self.resp_headers_table = KeyValueTable("HEADERS", key="response.headers")
-        self.resp_headers_table.table.setMaximumHeight(120)
         self.resp_headers_table.changed.connect(self._mark_dirty)
         resp.addWidget(self.resp_headers_table)
 
@@ -514,16 +516,7 @@ class StubEditorMixin:
         if problem:
             QMessageBox.warning(self, "Can't beautify", problem)
             return
-        text = self.resp_body_edit.toPlainText()
-        if fmt == "json":
-            pretty = json.dumps(json.loads(text), indent=2, ensure_ascii=False)
-        else:
-            declaration = text.lstrip().startswith("<?xml")
-            root = ET.fromstring(text)
-            ET.indent(root)
-            pretty = ET.tostring(root, encoding="unicode")
-            if declaration:
-                pretty = '<?xml version="1.0" encoding="UTF-8"?>\n' + pretty
+        pretty = beautify(self.resp_body_edit.toPlainText(), fmt)
         self.resp_body_edit.setPlainText(pretty)
 
     def _mark_dirty(self, *_args):
@@ -541,7 +534,8 @@ class StubEditorMixin:
         try:
             self.current_stub_id = stub["id"] if stub else None
             self.stub_editor.setEnabled(stub is not None)
-            stub = stub or {"request": {}, "response": {}}
+            blank: dict[str, Any] = {"request": {}, "response": {}}
+            stub = stub or blank
             self.stub_name_edit.setText(stub.get("name", ""))
             self.stub_priority_spin.setValue(int(stub.get("priority", DEFAULT_PRIORITY)))
             self.stub_enabled_check.setChecked(is_enabled(stub))
@@ -824,7 +818,7 @@ class StubEditorMixin:
         key, url = url_spec(request)
         note = ""
         if key in ("urlPath", "url"):
-            path = url
+            path = url or "/"
         elif key in ("urlPathPattern", "urlPattern"):
             path = example_from_pattern(url)
             if path is None:

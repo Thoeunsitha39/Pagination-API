@@ -105,7 +105,9 @@ def test_simulated_failure_times_and_new_run():
         return simulated_failure(pagination, _page(pagination, f"/r?page={page_no}"), "stub-1")
 
     assert call(1) is None
-    status, payload, headers = call(2)
+    failure = call(2)
+    assert failure is not None
+    status, payload, headers = failure
     assert status == 503 and headers == {"Retry-After": "1"} and "attempt 1 of 2" in payload["detail"]
     assert call(2)[0] == 503
     assert call(2) is None  # worked after 2 failures

@@ -33,14 +33,15 @@ from api_tool.core.stubs.model import (
     stub_summary,
     stub_tags,
 )
-from api_tool.core.stubs.webhooks import webhooks_of
+from api_tool.core.stubs.webhooks import webhook_enabled, webhooks_of
 from api_tool.ui.icons import icon
+from api_tool.ui.main_window.mixin_base import MixinBase
 from api_tool.ui.theme import TEXT_MUTED
 from api_tool.ui.widgets.common import WidthWatcher, _card, _icon_button, STUB_INFO_ROLE
 from api_tool.ui.widgets.stub_item_delegate import StubItemDelegate
 
 
-class MocksPageMixin:
+class MocksPageMixin(MixinBase):
     """The Mocks page: stub list, filter, create/clone/delete, import/export, persistence.
 
     Mixed into ApiTool; uses its widgets and state through self."""
@@ -207,9 +208,10 @@ class MocksPageMixin:
             tags.append("paged")
         if script_of(stub):
             tags.append("script")
-        hooks = len(webhooks_of(stub))
+        hooks = webhooks_of(stub)
         if hooks:
-            tags.append(f"{hooks} webhook{'s' if hooks > 1 else ''}")
+            off = sum(not webhook_enabled(h) for h in hooks)
+            tags.append(f"{len(hooks)} webhook{'s' if len(hooks) > 1 else ''}" + (f", {off} off" if off else ""))
         suffix = "".join(f"  [{tag}]" for tag in tags)
         return f"{request.get('method', 'ANY'):<7} {url}\n{stub.get('name', '')}{suffix}"
 
@@ -328,6 +330,8 @@ class MocksPageMixin:
         if self.current_stub_id is None or not self._confirm_leave_editor():
             return
         original = self._stub_by_id(self.current_stub_id)
+        if original is None:
+            return
         copy_stub = json.loads(json.dumps(original))
         copy_stub["id"] = str(uuid.uuid4())
         copy_stub["name"] = f"{original.get('name', 'Stub')} (copy)"

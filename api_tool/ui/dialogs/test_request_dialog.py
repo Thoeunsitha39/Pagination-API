@@ -55,7 +55,7 @@ class TestRequestDialog(QDialog):
         self.finished_signal.message.connect(self._on_finished)
         layout.addLayout(top)
 
-        self.headers_table = KeyValueTable("REQUEST HEADERS")
+        self.headers_table = KeyValueTable("REQUEST HEADERS", max_rows=5)
         self.headers_table.set_rows(headers or [])
         layout.addWidget(self.headers_table)
 

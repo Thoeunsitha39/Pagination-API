@@ -62,7 +62,7 @@ def clear_state():
         SHARED_STATE.clear()
 
 
-def run_script(code, request, response, variables, state=None, timeout=SCRIPT_TIMEOUT_SECONDS):
+def run_script(code, request, response, variables, state=None, timeout: float = SCRIPT_TIMEOUT_SECONDS):
     """Run a stub script. Returns its print() output lines; raises ScriptError on failure
     (including running longer than `timeout` seconds).
 

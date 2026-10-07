@@ -1,11 +1,22 @@
 """Calling AI providers: Anthropic SDK, OpenAI-compatible and Gemini HTTP APIs."""
 
 import json
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from api_tool.ai.errors import AIError
 from api_tool.ai.settings import CLAUDE_DEFAULT_MODEL
+
+
+def _out_of_credit_message(settings, status, detail=""):
+    """402 Payment Required: the account behind the key has no balance left."""
+    if settings.offer:
+        advice = ("The free AI included with this app has used up its credit. "
+                  "Try again later, or add your own API key in AI settings.")
+    else:
+        advice = f"Add credit to your {settings.label} account (or use another key in AI settings), then try again."
+    return f"{settings.label} account is out of credit ({status}). {advice} {detail}".strip()
 
 
 def _http_error_message(status, body, settings, url=""):
@@ -26,6 +37,8 @@ def _http_error_message(status, body, settings, url=""):
         detail = f"{detail} (called {url})".strip()
     if status in (401, 403):
         return f"The API key was rejected by {settings.label} ({status}). Check it in AI settings. {detail}"
+    if status == 402:
+        return _out_of_credit_message(settings, status, detail)
     if status == 404:
         return (f"Model or endpoint not found ({status}). Check the model name (“Load models” lists valid ones) "
                 f"and the base URL in AI settings. {detail}")
@@ -58,7 +71,7 @@ def _anthropic_client(settings):
         import anthropic
     except ImportError as exc:
         raise AIError("The 'anthropic' package is missing. Run: venv/bin/python -m pip install anthropic") from exc
-    options = dict(api_key=settings.api_key, timeout=300.0, max_retries=2)
+    options: dict[str, Any] = dict(api_key=settings.api_key, timeout=300.0, max_retries=2)
     if not settings.is_official_anthropic:
         # Anthropic-compatible third-party server; the SDK appends /v1/messages.
         options["base_url"] = settings.effective_base_url()
@@ -80,6 +93,8 @@ def _anthropic_error(anthropic, exc, settings):
                 f"lists valid ones) and the base URL in AI settings.{url}")
     if isinstance(exc, anthropic.RateLimitError):
         return f"{name} rate limit reached (429). Wait a moment and try again."
+    if isinstance(exc, anthropic.APIStatusError) and exc.status_code == 402:
+        return _out_of_credit_message(settings, 402, f"{exc.message}{url}")
     if isinstance(exc, anthropic.APIStatusError):
         return f"{name} API error ({exc.status_code}): {exc.message}{url}"
     if isinstance(exc, anthropic.APIConnectionError):
@@ -99,7 +114,7 @@ def stream_chat(settings, system, messages, on_delta, should_stop=lambda: False)
 def _stream_anthropic(settings, system, messages, on_delta, should_stop):
     anthropic, client = _anthropic_client(settings)
     parts = []
-    params = dict(model=settings.model, max_tokens=16000, system=system, messages=messages)
+    params: dict[str, Any] = dict(model=settings.model, max_tokens=16000, system=system, messages=messages)
     if settings.is_official_anthropic:
         # Claude-only options; Anthropic-compatible third-party servers may reject them.
         params.update(cache_control={"type": "ephemeral"}, output_config={"effort": "medium"})

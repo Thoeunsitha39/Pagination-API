@@ -20,11 +20,12 @@ from api_tool.core.paths import security_settings_path
 from api_tool.server.security import AUTH_MODES
 from api_tool.server.security.store import load_security, save_security
 from api_tool.ui.icons import icon
+from api_tool.ui.main_window.mixin_base import MixinBase
 from api_tool.ui.widgets.common import _field
 from api_tool.ui.widgets.pickers import DurationInput
 
 
-class SecurityMixin:
+class SecurityMixin(MixinBase):
     """Mixed into ApiTool; uses its widgets and state through self (self.security is the Authenticator)."""
 
     def _build_security_card(self, section):

@@ -18,11 +18,12 @@ from PySide6.QtWidgets import (
 from api_tool.core.paths import mappings_file_path
 from api_tool.server.request_handler import DEFAULT_SERVER_HOST, DEFAULT_SERVER_PORT
 from api_tool.ui.icons import icon
+from api_tool.ui.main_window.mixin_base import MixinBase
 from api_tool.ui.theme import ACCENT, TEXT_SECONDARY
 from api_tool.ui.widgets.common import SectionToggle, _card
 
 
-class SettingsPageMixin:
+class SettingsPageMixin(MixinBase):
     """The Settings page: server, security, data and AI status.
 
     Mixed into ApiTool; uses its widgets and state through self."""
